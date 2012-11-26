@@ -91,6 +91,7 @@ class Site(object):
         `slug` - filename or, if the filename is "index", the dirname
                of the parent directory unless its the top level dir.
         `output_ext` - the extension of the parsed file
+        `tags_header` - Tags of parsed files
         """
         output_ext = splitext(path)[1][1:]
         root, filename = split(splitext(path)[0])
@@ -104,10 +105,11 @@ class Site(object):
         except OSError:
             # use the current date if the ctime cannot be accessed
             date = datetime.now()
+        tags_header = str()
         return dict(path=relpath(path, self.settings['project_dir']),
                     title=title, date=date, status='live',
                     slug=slug, template='default.html', url='default',
-                    output_ext=output_ext)
+                    output_ext=output_ext, tags_header=tags_header)
 
     def _parse(self, input_data):
         "Parses the input data"
@@ -152,6 +154,10 @@ class Site(object):
                 
                 # update the url
                 page['url'] = get_url(page)
+
+                # extract tags
+                if len(page['tags_header']) > 0:
+                    page['tags']= page['tags_header'].split(',')
 
                 self.pages.append(page)
                 sys.stdout.write('.')
@@ -234,7 +240,7 @@ class Site(object):
         for page in self.pages:
             for static_file in page['static_files']:
                 dst = join(self.settings['output_dir'],
-                           dirname(_get_output_path(page['url'])),
+                           dirname(self._get_output_path(page['url'])),
                            relpath(static_file, dirname(page['path'])))
                 logging.debug('copying %s to %s', static_file, dst)
                 copy_file(static_file, dst)
